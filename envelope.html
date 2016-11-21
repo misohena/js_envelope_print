@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="default.css" />
+    <title>JavaScript 封筒宛名印刷</title>
+    <style>
+      .envelope {
+        margin: auto;
+        box-sizing: border-box;
+        position: relative;
+
+        font-family: HG正楷書体-PRO,serif;
+        text-align: center;
+      }
+      .pcn { /* Post Code Number */
+        border: 1px solid red;
+        box-sizing: border-box;
+        font-family: OCRB;
+      }
+
+      /* Front */
+      .envelope-to > .postcode {
+        font-size: 7mm;
+        position: absolute;
+        right: 8mm;
+        top: 13mm; /*12mm*/
+      }
+      .envelope-to > .postcode > .pcn{
+        width: 5.7mm;
+        height: 8mm;
+        line-height: 8mm;
+        display: inline-block;
+        text-align: center;
+        margin-right: 1.3mm;
+      }
+      .envelope-to > .postcode > .pcn:nth-child(3) {
+        margin-right: 1.9mm;
+      }
+      .envelope-to > .postcode > .pcn:nth-child(n+4) {
+        margin-right: 1.1mm;
+      }
+
+      .envelope-to > .address {
+        font-size: 26pt;
+        writing-mode: vertical-rl;
+        position: absolute;
+        right: 8mm;
+        top: 35mm;
+        text-align: end;
+      }
+      .envelope-to > .name {
+        font-size: 38pt;
+        writing-mode: vertical-rl;
+        text-align: start;
+
+        margin-top: 50mm;
+        display: inline-block;
+        vertical-align: middle;
+      }
+      .envelope-to > .name > .name-org{
+        font-size: 20pt;
+        display: block;
+      }
+      .envelope-to > .name > .name-title{
+        font-size: 12pt;
+        margin-bottom: 1em;
+      }
+
+      /* Back */
+      #from {
+        position: absolute;
+        left: 10mm;
+        bottom: 20mm;
+      }
+      #from-postcode {
+        text-align: right;
+      }
+      #from-wo-postcode {
+        text-align: end;
+        writing-mode: vertical-rl;
+      }
+      #from-address {
+        font-size: 16pt;
+      }
+      #from-name {
+        margin-right: 3mm;
+        display: inline-block;
+        text-align: start;
+        font-size: 24pt;
+      }
+      #from-name > .name-org{
+        font-size: 14pt;
+        display: block;
+      }
+      #from-name > .name-title{
+        font-size: 12pt;
+        margin-bottom: 1em;
+      }
+      /* postcode number */
+      .envelope-from > .postcode > .pcn{
+        width: 3mm;
+        height: 4mm;
+        line-height: 4mm;
+        display: inline-block;
+        text-align: center;
+        margin-right: 0.5mm;
+      }
+      .envelope-from > .postcode > .pcn:nth-child(3) {
+        margin-right: 0.75mm;
+      }
+
+      /* tate cyuu yoko */
+      .tcy{
+        text-combine-upright: all;
+      }
+
+      /* for Screen */
+      @media screen {
+        .input {
+          float: left;
+        }
+        .envelope {
+          float: left;
+          border: 1px solid;
+        }
+      }
+      /* for Printing */
+      @media print {
+        html { margin: 0; padding: 0;}
+        body { margin: 0; padding: 0;}
+        .input { display: none;}
+        .envelope {
+          float: none;
+          border: none;
+          break-after: always;
+        }
+        .pcn{
+          border: none;
+        }
+      }
+      @page {
+        margin: 0;
+      }
+
+      /* for Long3 */
+      /* see: setPaperSize
+      @page {
+        size: 120mm 235mm;
+      }
+      .envelope {
+        width: 120mm; height: 235mm;
+      }
+      */
+    </style>
+    <script>//<![CDATA[
+      (function(){
+      var PAPER_SIZES = [
+      {name:"長形1号", w:142, h:332, type:"定形外"},
+      {name:"長形2号", w:119, h:277, type:"定形外"},
+      {name:"長形3号", w:120, h:235, type:"定形", selected: true},
+      {name:"長形4号", w:90, h:205, type:"定形"},
+      {name:"長形5号", w:90, h:185, type:"定形"},
+      {name:"長形8号", w:119, h:197, type:"定形"},
+      {name:"長形13号", w:105, h:235, type:"定形"},
+      {name:"長形14号", w:95, h:217, type:"定形"},
+      {name:"長形30号", w:92, h:235, type:"定形"},
+      {name:"長形40号", w:90, h:225, type:"定形"},
+
+      {name:"角形0号", w:287, h:382, type:"定形外"},
+      {name:"角形1号", w:270, h:382, type:"定形外"},
+      {name:"角形2号", w:240, h:332, type:"定形外"},
+      {name:"角形3号", w:216, h:277, type:"定形外"},
+      {name:"角形4号", w:197, h:267, type:"定形外"},
+      {name:"角形5号", w:190, h:240, type:"定形外"},
+      {name:"角形6号", w:162, h:229, type:"定形外"},
+      {name:"角形7号", w:142, h:205, type:"定形外"},
+      {name:"角形8号", w:119, h:197, type:"定形"},
+      {name:"角形20号", w:229, h:324, type:"定形外"},
+      {name:"角形B3号", w:375, h:525, type:"定形外"},
+      {name:"角形A3号", w:335, h:490, type:"定形外"},
+      {name:"角形A4号", w:228, h:312, type:"定形外"}
+      ];
+
+      // HTML Utility
+      function removeChildren(elem){
+        while(elem.firstChild){elem.removeChild(elem.firstChild);}
+      }
+      function appendChild(parent, child){
+        if(Array.isArray(child)){
+          for(var i = 0; i < child.length; ++i){
+            parent.appendChild(child[i]);
+          }
+        }
+        else if(child instanceof Node){
+          parent.appendChild(child);
+        }
+        return parent;
+      }
+      function replaceChild(parent, child){
+        removeChildren(parent);
+        return appendChild(parent, child);
+      }
+      function wrapElement(type, className, child){
+        var elem = appendChild(document.createElement(type), child);
+        elem.className = className;
+        return elem;
+      }
+      function wrapTextNode(str){
+        return document.createTextNode(str);
+      }
+      function createElement(type){
+        return document.createElement(type);
+      }
+
+      // PostCode
+      function makePostCodeDiv(postcodeStr, div){
+        var nums = postcodeStr.match(/[0-9]/g) || [];
+        return replaceChild(
+          div || createElement("div"),
+          nums.slice(0, 7).map(s => wrapElement("span", "pcn", wrapTextNode(s))));
+      }
+      function updatePostCode(form, viewDiv){
+        makePostCodeDiv(form.postcode.value, viewDiv);
+      }
+
+      // Text Processing
+      function makeVerticalTextArray(str){
+        str = str || "";
+        var tokens = str.match(/\n|[0-9]+|[A-Za-z]|[^\n0-9A-Za-z]+/g);
+        if(tokens){
+          return tokens.map(function(s){
+            if(s == "\n"){
+              return document.createElement("br");
+            }
+            else if(/^[0-9]+|^[A-Za-z]$/.test(s)){
+              return wrapElement("span", "tcy", wrapTextNode(s));
+            }
+            else{
+              return wrapTextNode(s);
+            }
+          });
+        }
+        else{
+          return [];
+        }
+      }
+      function makeVerticalTextDiv(str, div){
+        replaceChild(div, makeVerticalTextArray(str));
+        return div;
+      }
+
+      // Address
+      function updateAddress(form, viewDiv){
+        makeVerticalTextDiv(form.address.value, viewDiv);
+      }
+
+      // Name
+      function updateName(form, div){
+        var valueNameOrg = form.nameOrg.value;
+        var valueNameTitle = form.nameTitle.value;
+        var valueName = form.name.value;
+
+        var arr = [];
+        if(valueNameOrg){
+          arr.push(wrapElement("span", "name-org", makeVerticalTextArray(valueNameOrg)));
+        }
+        if(valueNameTitle){
+          arr.push(wrapElement("span", "name-title", makeVerticalTextArray(valueNameTitle)));
+        }
+        Array.prototype.push.apply(arr, makeVerticalTextArray(valueName));
+
+        replaceChild(div, arr);
+      }
+
+      //Link input to view
+      function listenInput(inputElem, funUpdate)
+      {
+        inputElem.addEventListener("input", funUpdate, false);
+      }
+      function listenForm(form, postCodeElemId, addressElemId, nameElemId)
+      {
+        function upPostCode(){
+          updatePostCode(form, document.getElementById(postCodeElemId));
+        }
+        function upAddress(){
+          updateAddress(form, document.getElementById(addressElemId));
+        }
+        function upName(){
+          updateName(form, document.getElementById(nameElemId));
+        }
+
+        listenInput(form.postcode, upPostCode);
+        listenInput(form.address, upAddress);
+        listenInput(form.nameOrg, upName);
+        listenInput(form.nameTitle, upName);
+        listenInput(form.name, upName);
+
+        upPostCode();
+        upAddress();
+        upName();
+      }
+
+      // Paper Size
+      var paperSizeStyle = document.createElement("style");
+      document.head.appendChild(paperSizeStyle);
+      function setPaperSize(w, h){
+        paperSizeStyle.innerHTML = "@page {size: " + w + "mm " + h + "mm;} .envelope { width: " + w + "mm; height: " + h + "mm;}";
+      }
+      function initPaperSelector(){
+        var select = document.forms.paper.size;
+        for(var i = 0; i < PAPER_SIZES.length; ++i){
+          var opt = document.createElement("option");
+          opt.value = PAPER_SIZES[i].w + " " + PAPER_SIZES[i].h;
+          opt.innerText = PAPER_SIZES[i].name + "(" + PAPER_SIZES[i].w + "x" + PAPER_SIZES[i].h + ")";
+          if(PAPER_SIZES[i].selected){
+            opt.selected = true;
+          }
+          select.appendChild(opt);
+        }
+        function update(){
+          var wh = select.value.split(" ");
+          if(wh && wh.length == 2){
+            setPaperSize(wh[0], wh[1]);
+          }
+        }
+        select.addEventListener("input", update, false);
+        update();
+      }
+
+
+      function onLoad(){
+        listenForm(document.forms.to, "to-postcode", "to-address", "to-name");
+        listenForm(document.forms.from, "from-postcode", "from-address", "from-name");
+        initPaperSelector();
+      }
+      window.addEventListener("load", onLoad, false);
+      })();
+      //]]>
+    </script>
+  </head>
+  <body>
+    <div class="input">
+      <ul>
+        <li>※Chrome推奨(マージンの関係)</li>
+        <li>※定形外の郵便番号位置には未対応</li>
+      </ul>
+      <h3>用紙</h3>
+      <form name="paper">
+        <select name="size">
+        </select>
+        <p>※プリンターの用紙サイズ設定と合わせてください</p>
+      </form>
+      <h3>宛先</h3>
+      <form name="to">
+        <table>
+          <tr><td>郵便番号</td><td><input name="postcode" type="text" placeholder="1112222" /></td></tr>
+          <tr><td>住所</td><td><textarea name="address" rows="2" cols="40"></textarea></td></tr>
+          <tr><td>名前(組織)</td><td><textarea name="nameOrg" rows="2" cols="40"></textarea></td></tr>
+          <tr><td>名前(肩書)</td><td><textarea name="nameTitle" rows="2" cols="40"></textarea></td></tr>
+          <tr><td>名前</td><td><textarea name="name" rows="2" cols="40"></textarea></td></tr>
+        </table>
+      </form>
+      <h3>送り主</h3>
+      <form name="from">
+        <table>
+          <tr><td>郵便番号</td><td><input name="postcode" type="text" placeholder="1112222" /></td></tr>
+          <tr><td>住所</td><td><textarea name="address" rows="2" cols="40"></textarea></td></tr>
+          <tr><td>名前(組織)</td><td><textarea name="nameOrg" rows="2" cols="40"></textarea></td></tr>
+          <tr><td>名前(肩書)</td><td><textarea name="nameTitle" rows="2" cols="40"></textarea></td></tr>
+          <tr><td>名前</td><td><textarea name="name" rows="2" cols="40"></textarea></td></tr>
+        </table>
+      </form>
+      <input type="button" value="印刷" onclick="window.print();" />
+    </div>
+    <div class="envelope envelope-to">
+      <div id="to-postcode" class="postcode"></div>
+      <div id="to-address" class="address"></div>
+      <div id="to-name" class="name"></div>
+    </div>
+    <div class="envelope envelope-from">
+      <div id="from">
+        <div id="from-postcode" class="postcode"></div>
+        <div id="from-wo-postcode">
+          <div id="from-address" class="address"></div>
+          <div id="from-name" class="name"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
