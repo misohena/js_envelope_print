@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="default.css" />
-    <title>JavaScript 封筒宛名印刷</title>
+    <title>スタンプ印刷</title>
     <style>
       .envelope {
         margin: auto;
@@ -13,107 +13,17 @@
         font-family: HG正楷書体-PRO,serif;
         text-align: center;
       }
-      .pcn { /* Post Code Number */
-        border: 1px solid red;
-        box-sizing: border-box;
-        font-family: OCRB;
-      }
 
       /* Front */
-      .envelope-to > .postcode {
-        font-size: 7mm;
-        position: absolute;
-        right: 8mm;
-        top: 13mm; /*12mm*/
-      }
-      .envelope-to > .postcode > .pcn{
-        width: 5.7mm;
-        height: 8mm;
-        line-height: 8mm;
-        display: inline-block;
-        text-align: center;
-        margin-right: 1.3mm;
-      }
-      .envelope-to > .postcode > .pcn:nth-child(3) {
-        margin-right: 1.9mm;
-      }
-      .envelope-to > .postcode > .pcn:nth-child(n+4) {
-        margin-right: 1.1mm;
-      }
-
-      .envelope-to > .address {
-        font-size: 26pt;
+      .stamp {
         writing-mode: vertical-rl;
+        font-size: 28pt;
         position: absolute;
-        right: 8mm;
-        top: 35mm;
-        text-align: end;
-      }
-      .envelope-to > .name {
-        font-size: 38pt;
-        writing-mode: vertical-rl;
-        text-align: start;
-
-        margin-top: 50mm;
-        display: inline-block;
-        vertical-align: middle;
-
-        letter-spacing: 0.25em;
-      }
-      .envelope-to > .name > .name-org{
-        letter-spacing: normal;
-        font-size: 20pt;
-        display: block;
-        margin-left: 10pt;
-        margin-right: -10pt;
-      }
-      .envelope-to > .name > .name-title{
-        letter-spacing: normal;
-        font-size: 14pt;
-        margin-bottom: 1em;
-      }
-
-      /* Back */
-      #from {
-        position: absolute;
-        left: 10mm;
-        bottom: 20mm;
-      }
-      #from-postcode {
-        text-align: right;
-      }
-      #from-wo-postcode {
-        text-align: end;
-        writing-mode: vertical-rl;
-      }
-      #from-address {
-        font-size: 16pt;
-      }
-      #from-name {
-        margin-right: 3mm;
-        display: inline-block;
-        text-align: start;
-        font-size: 24pt;
-      }
-      #from-name > .name-org{
-        font-size: 14pt;
-        display: block;
-      }
-      #from-name > .name-title{
-        font-size: 12pt;
-        margin-bottom: 1em;
-      }
-      /* postcode number */
-      .envelope-from > .postcode > .pcn{
-        width: 3mm;
-        height: 4mm;
-        line-height: 4mm;
-        display: inline-block;
-        text-align: center;
-        margin-right: 0.5mm;
-      }
-      .envelope-from > .postcode > .pcn:nth-child(3) {
-        margin-right: 0.75mm;
+        left: 7mm;
+        bottom: 15mm;
+        border: 2pt solid;
+        border-radius: 4pt;
+        padding: 4pt;
       }
 
       /* tate cyuu yoko */
@@ -140,9 +50,6 @@
           float: none;
           border: none;
           break-after: always;
-        }
-        .pcn{
-          border: none;
         }
       }
       @page {
@@ -219,17 +126,6 @@
         return document.createElement(type);
       }
 
-      // PostCode
-      function makePostCodeDiv(postcodeStr, div){
-        var nums = postcodeStr.match(/[0-9]/g) || [];
-        return replaceChild(
-          div || createElement("div"),
-          nums.slice(0, 7).map(s => wrapElement("span", "pcn", wrapTextNode(s))));
-      }
-      function updatePostCode(form, viewDiv){
-        makePostCodeDiv(form.postcode.value, viewDiv);
-      }
-
       // Text Processing
       function makeVerticalTextArray(str){
         str = str || "";
@@ -256,27 +152,15 @@
         return div;
       }
 
-      // Address
-      function updateAddress(form, viewDiv){
-        makeVerticalTextDiv(form.address.value, viewDiv);
+      // Content
+      function updateContent(form, viewDiv){
+        makeVerticalTextDiv(form.content.value, viewDiv);
       }
 
-      // Name
-      function updateName(form, div){
-        var valueNameOrg = form.nameOrg.value;
-        var valueNameTitle = form.nameTitle.value;
-        var valueName = form.name.value;
-
-        var arr = [];
-        if(valueNameOrg){
-          arr.push(wrapElement("span", "name-org", makeVerticalTextArray(valueNameOrg)));
-        }
-        if(valueNameTitle){
-          arr.push(wrapElement("span", "name-title", makeVerticalTextArray(valueNameTitle)));
-        }
-        Array.prototype.push.apply(arr, makeVerticalTextArray(valueName));
-
-        replaceChild(div, arr);
+      // Color
+      function updateColor(form, div){
+        div.style.color = form.color.value;
+        div.style.borderColor = form.color.value;
       }
 
       //Link input to view
@@ -284,27 +168,20 @@
       {
         inputElem.addEventListener("input", funUpdate, false);
       }
-      function listenForm(form, postCodeElemId, addressElemId, nameElemId)
+      function listenForm(form, stampElemId)
       {
-        function upPostCode(){
-          updatePostCode(form, document.getElementById(postCodeElemId));
+        function upContent(){
+          updateContent(form, document.getElementById(stampElemId));
         }
-        function upAddress(){
-          updateAddress(form, document.getElementById(addressElemId));
-        }
-        function upName(){
-          updateName(form, document.getElementById(nameElemId));
+        function upColor(){
+          updateColor(form, document.getElementById(stampElemId));
         }
 
-        listenInput(form.postcode, upPostCode);
-        listenInput(form.address, upAddress);
-        listenInput(form.nameOrg, upName);
-        listenInput(form.nameTitle, upName);
-        listenInput(form.name, upName);
+        listenInput(form.content, upContent);
+        listenInput(form.color, upColor);
 
-        upPostCode();
-        upAddress();
-        upName();
+        upContent();
+        upColor();
       }
 
       // Paper Size
@@ -336,8 +213,7 @@
 
 
       function onLoad(){
-        listenForm(document.forms.to, "to-postcode", "to-address", "to-name");
-        listenForm(document.forms.from, "from-postcode", "from-address", "from-name");
+        listenForm(document.forms.to, "stamp");
         initPaperSelector();
       }
       window.addEventListener("load", onLoad, false);
@@ -349,8 +225,7 @@
     <div class="input">
       <ul>
         <li>※Chrome推奨(マージンの関係)</li>
-        <li>※定形外の郵便番号位置には未対応</li>
-	<li><a href="stamp.html">スタンプ印刷</a></li>
+        <li><a href="envelope.html">宛名印刷</a></li>
       </ul>
       <h3>用紙</h3>
       <form name="paper">
@@ -361,38 +236,14 @@
       <h3>宛先</h3>
       <form name="to">
         <table>
-          <tr><td>郵便番号</td><td><input name="postcode" type="text" placeholder="1112222" /></td></tr>
-          <tr><td>住所</td><td><textarea name="address" rows="2" cols="40"></textarea></td></tr>
-          <tr><td>名前(組織)</td><td><textarea name="nameOrg" rows="2" cols="40"></textarea></td></tr>
-          <tr><td>名前(肩書)</td><td><textarea name="nameTitle" rows="2" cols="40"></textarea></td></tr>
-          <tr><td>名前</td><td><textarea name="name" rows="2" cols="40"></textarea></td></tr>
-        </table>
-      </form>
-      <h3>送り主</h3>
-      <form name="from">
-        <table>
-          <tr><td>郵便番号</td><td><input name="postcode" type="text" placeholder="1112222" /></td></tr>
-          <tr><td>住所</td><td><textarea name="address" rows="2" cols="40"></textarea></td></tr>
-          <tr><td>名前(組織)</td><td><textarea name="nameOrg" rows="2" cols="40"></textarea></td></tr>
-          <tr><td>名前(肩書)</td><td><textarea name="nameTitle" rows="2" cols="40"></textarea></td></tr>
-          <tr><td>名前</td><td><textarea name="name" rows="2" cols="40"></textarea></td></tr>
+          <tr><td>内容</td><td><textarea name="content" rows="2" cols="40">請求書在中</textarea></td></tr>
+          <tr><td>色</td><td><input name="color" type="color" value="#00a0d7"></input></td></tr>
         </table>
       </form>
       <input type="button" value="印刷" onclick="window.print();" />
     </div>
     <div class="envelope envelope-to">
-      <div id="to-postcode" class="postcode"></div>
-      <div id="to-address" class="address"></div>
-      <div id="to-name" class="name"></div>
-    </div>
-    <div class="envelope envelope-from">
-      <div id="from">
-        <div id="from-postcode" class="postcode"></div>
-        <div id="from-wo-postcode">
-          <div id="from-address" class="address"></div>
-          <div id="from-name" class="name"></div>
-        </div>
-      </div>
+      <div id="stamp" class="stamp"></div>
     </div>
   </body>
 </html>
